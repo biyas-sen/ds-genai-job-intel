@@ -137,7 +137,53 @@ Engineering (42), AWS (42).
 ---
 
 ## Step 3: Visualization
-*(not started yet)*
+
+**Goal:** turn the 407 cleaned postings into charts answering: which skills
+dominate, LangChain vs LlamaIndex, RAG vs fine-tuning, Python vs SQL, and
+(eventually) demand trend over time.
+
+Built 9 interactive Plotly charts (top skills, category breakdown, source
+breakdown, experience distribution, and 4 head-to-head skill comparisons),
+saved as standalone HTML.
+
+**Headline numbers:** Machine Learning (178), LLM (107), Generative AI
+(102), Python (95), Agents (88) lead overall. RAG outpaces Fine-tuning
+64-to-28. LangChain outpaces LlamaIndex 31-to-11.
+
+### Caveat found via verification: SQL undercount is a data artifact, not a real signal
+
+SQL showed up at only 20 mentions (~5% of postings) — surprisingly low for
+data science roles, where SQL is normally near-universal. Rather than plot
+this as-is, checked it: of the 78 postings that mention Python but not SQL,
+**57 (73%) have a truncated description** (mostly Adzuna snippets cut off
+mid-sentence, per the `description_is_truncated` flag from Step 2). This
+strongly suggests SQL is being under-counted because the truncated text
+never reaches the skills section of the posting, not because Bangalore
+DS/GenAI roles genuinely don't want SQL.
+
+**Handling:** documenting this as a known data limitation rather than
+treating the number as ground truth. Any future re-run that adds a source
+with fuller description text (or re-scrapes Adzuna via their full-listing
+page instead of the search snippet) should shrink this gap. Not fixing it
+by inflating the number artificially — an honest caveat is better than a
+falsely confident chart.
+
+### On month-to-month trend
+
+Not built yet — this snapshot is a single scrape (2026-07-11). The
+collectors already save timestamped raw files, so re-running them
+periodically over the coming weeks/months and re-running this script will
+produce a real trend line without any code changes. Documenting this
+limitation now rather than faking a trend chart from one data point.
+
+### Result
+
+9 chart HTML files in `data/processed/charts/`. `.gitignore` originally
+excluded all of `data/processed/`, which would have hidden the charts from
+the GitHub repo — added an explicit exception so charts are trackable while
+raw/processed data files stay excluded.
+
+---
 
 ---
 

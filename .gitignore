@@ -6,5 +6,7 @@ data/raw/*
 data/processed/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
+!data/processed/charts/
+!data/processed/charts/*.html
 .DS_Store
 .Rhistory
