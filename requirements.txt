@@ -1,0 +1,25 @@
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+lxml>=5.0.0
+pandas>=2.1.0
+python-dotenv>=1.0.0
+tqdm>=4.66.0
+tenacity>=8.2.0
+
+# wrangling / NLP (added in step 2)
+spacy>=3.7.0
+rapidfuzz>=3.5.0
+
+# viz (step 3)
+plotly>=5.18.0
+matplotlib>=3.8.0
+
+# ml (step 4)
+scikit-learn>=1.3.0
+sentence-transformers>=2.2.2
+
+# genai (step 5)
+anthropic>=0.34.0
+
+# app (step 6)
+streamlit>=1.32.0
