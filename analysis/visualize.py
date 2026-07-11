@@ -24,6 +24,11 @@ from wrangling.skills_taxonomy import SKILL_TO_CATEGORY
 CHARTS_DIR = PROCESSED_DIR / "charts"
 CHARTS_DIR.mkdir(parents=True, exist_ok=True)
 
+# Load plotly.js from a CDN instead of embedding ~4MB of it in every single
+# chart file -- keeps file sizes small and stops charts from dominating
+# GitHub's language stats.
+PLOTLY_JS_MODE = "cdn"
+
 
 def load_data() -> pd.DataFrame:
     path = PROCESSED_DIR / "jobs_clean.json"
@@ -59,7 +64,7 @@ def chart_top_skills(df: pd.DataFrame, top_n: int = 20):
         margin=dict(l=180),
     )
     out = CHARTS_DIR / "top_skills.html"
-    fig.write_html(out)
+    fig.write_html(out, include_plotlyjs=PLOTLY_JS_MODE)
     print(f"  saved -> {out}")
 
 
@@ -80,7 +85,7 @@ def chart_category_breakdown(df: pd.DataFrame):
     )
     fig.update_traces(textinfo="label+percent")
     out = CHARTS_DIR / "category_breakdown.html"
-    fig.write_html(out)
+    fig.write_html(out, include_plotlyjs=PLOTLY_JS_MODE)
     print(f"  saved -> {out}")
 
 
@@ -97,7 +102,7 @@ def chart_head_to_head(df: pd.DataFrame, pairs: list[tuple[str, str]], title: st
                             text=values, textposition="outside"))
     fig.update_layout(title=f"{title} (n={len(df)} postings)", yaxis_title="Postings mentioning")
     out = CHARTS_DIR / filename
-    fig.write_html(out)
+    fig.write_html(out, include_plotlyjs=PLOTLY_JS_MODE)
     print(f"  saved -> {out}")
 
 
@@ -120,7 +125,7 @@ def chart_experience_distribution(df: pd.DataFrame):
         yaxis_title="Number of postings",
     )
     out = CHARTS_DIR / "experience_distribution.html"
-    fig.write_html(out)
+    fig.write_html(out, include_plotlyjs=PLOTLY_JS_MODE)
     print(f"  saved -> {out}")
 
 
@@ -131,7 +136,7 @@ def chart_source_breakdown(df: pd.DataFrame):
                  title=f"Postings by Source (n={len(df)} total, after dedup)")
     fig.update_traces(marker_color="#2563eb", text=counts.values, textposition="outside")
     out = CHARTS_DIR / "source_breakdown.html"
-    fig.write_html(out)
+    fig.write_html(out, include_plotlyjs=PLOTLY_JS_MODE)
     print(f"  saved -> {out}")
 
 
