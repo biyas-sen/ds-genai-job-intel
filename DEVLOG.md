@@ -178,10 +178,30 @@ limitation now rather than faking a trend chart from one data point.
 
 ### Result
 
+### Result
+
 9 chart HTML files in `data/processed/charts/`. `.gitignore` originally
 excluded all of `data/processed/`, which would have hidden the charts from
 the GitHub repo — added an explicit exception so charts are trackable while
 raw/processed data files stay excluded.
+
+### Bug found via visual inspection: blank heatmap
+
+Added two more chart types afterward for genuine variety (not just
+decoration) -- a skill co-occurrence heatmap and a category/skill treemap.
+The heatmap initially rendered as a completely blank pale rectangle with no
+visible cells or values. Root cause: the co-occurrence matrix was built
+from boolean (`True`/`False`) values, and `pandas.DataFrame.dot()` on
+boolean dtype didn't reliably produce the expected numeric matrix
+multiplication result. Fixed by explicitly casting the matrix to `int`
+before the dot product. Confirmed fixed by opening the regenerated file and
+visually checking that populated colored cells with numeric labels
+appeared, not just trusting that the script ran without throwing an error
+-- a script exiting cleanly doesn't guarantee the *output* is correct.
+
+Final chart set: 11 files, including the top-skills bar chart, category
+donut, source breakdown, experience distribution, 4 head-to-head
+comparisons, a skill co-occurrence heatmap, and a category/skill treemap.
 
 ---
 

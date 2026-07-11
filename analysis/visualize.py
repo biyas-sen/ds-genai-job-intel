@@ -140,6 +140,61 @@ def chart_source_breakdown(df: pd.DataFrame):
     print(f"  saved -> {out}")
 
 
+def chart_skill_cooccurrence_heatmap(df: pd.DataFrame, top_n: int = 15):
+    """Which skills tend to appear together in the same posting?"""
+    top_skills = list(skill_counts(df).head(top_n).index)
+
+    # Build a postings x skill matrix of 0/1 ints (NOT bool -- pandas .dot()
+    # on boolean dtype can silently misbehave and produce an empty-looking
+    # result). Explicit int cast keeps the matrix multiplication reliable.
+    matrix = pd.DataFrame(
+        [[int(skill in skills) for skill in top_skills] for skills in df["skills_extracted"]],
+        columns=top_skills,
+    ).astype(int)
+    cooc = matrix.T.dot(matrix)  # symmetric co-occurrence count matrix
+
+    fig = go.Figure(go.Heatmap(
+        z=cooc.values,
+        x=list(cooc.columns),
+        y=list(cooc.index),
+        colorscale="Blues",
+        text=cooc.values,
+        texttemplate="%{text}",
+        textfont={"size": 9},
+    ))
+    fig.update_layout(
+        title=f"Skill Co-occurrence: How Often Skills Appear Together (top {top_n} skills)",
+        height=700,
+        xaxis={"tickangle": -45},
+    )
+    out = CHARTS_DIR / "skill_cooccurrence.html"
+    fig.write_html(out, include_plotlyjs=PLOTLY_JS_MODE)
+    print(f"  saved -> {out}")
+
+
+def chart_treemap(df: pd.DataFrame):
+    """Category -> skill hierarchy, sized by how often each skill is mentioned."""
+    counts = skill_counts(df)
+    rows = [
+        {"category": SKILL_TO_CATEGORY.get(skill, "Other"), "skill": skill, "count": count}
+        for skill, count in counts.items()
+    ]
+    tree_df = pd.DataFrame(rows)
+
+    fig = px.treemap(
+        tree_df,
+        path=["category", "skill"],
+        values="count",
+        title=f"Skills by Category, Sized by Mentions (n={len(df)} postings)",
+        color="count",
+        color_continuous_scale="Blues",
+    )
+    fig.update_traces(textinfo="label+value")
+    out = CHARTS_DIR / "skills_treemap.html"
+    fig.write_html(out, include_plotlyjs=PLOTLY_JS_MODE)
+    print(f"  saved -> {out}")
+
+
 def run():
     df = load_data()
     print(f"Loaded {len(df)} processed postings.\n")
@@ -149,6 +204,8 @@ def run():
     chart_category_breakdown(df)
     chart_source_breakdown(df)
     chart_experience_distribution(df)
+    chart_skill_cooccurrence_heatmap(df)
+    chart_treemap(df)
 
     chart_head_to_head(
         df,
