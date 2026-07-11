@@ -81,7 +81,58 @@ and adjusting to match reality.
 ---
 
 ## Step 2: Wrangling
-*(not started yet)*
+
+**Goal:** merge both raw sources into one clean dataset, extract structured
+skills and experience bands from free text.
+
+- Loaded 467 raw postings (397 Adzuna + 70 JSearch), deduped near-identical
+  cross-posted listings down to 407 unique postings (matched on
+  company + title).
+- Built a ~80-term skills taxonomy across 7 categories (languages, core ML,
+  GenAI/LLM-specific, MLOps, cloud, data engineering, BI) and matched it
+  against combined title + description text via regex.
+- Extracted experience bands ("3-5 years" style patterns) from free text
+  since neither source provides this as a structured field — only
+  successful for ~12.5% of postings, since most listings don't state an
+  explicit numeric band in the visible text.
+
+### Bug found via manual verification: substring false positives
+
+Initial run put **Scala at #6 overall (75 postings)** and Excel in the top
+15 — both implausibly high for the current Bangalore DS/GenAI market.
+Manually inspected the actual matched text spans instead of trusting the
+aggregate number, and found the "Scala" pattern was a naive substring match
+matching inside the unrelated word **"scal-able"** ("scalable AI platform",
+"scalable production systems" — extremely common phrasing, nothing to do
+with the Scala language). Same risk for "Excel" matching the verb "excel"
+("excel in a fast-paced environment").
+
+**Fix:** added regex word boundaries (`\bscala\b`) so patterns only match
+whole words, not substrings. Re-ran the pipeline — Scala dropped out of the
+top 15 entirely (real finding: Scala is essentially absent from Bangalore
+DS/GenAI postings right now, not a data quality gap).
+
+Also manually spot-checked "Agents" (88 matches) given it uses a looser
+lookahead pattern with similar false-positive risk — confirmed via the same
+method that every sampled match was genuine agentic-AI language, not a
+coincidental match. Kept as-is.
+
+**Takeaway:** every extracted skill/number in this project gets spot-checked
+against the actual matched text before being trusted, not just eyeballed as
+a plausible-looking count. Caught one real bug this way; confirmed one
+number that looked suspicious but was actually correct.
+
+### Result
+
+407 clean postings, `data/processed/jobs_clean.csv` + `.json`, each with:
+source, title, company, location, cleaned description, extracted skills
+list, skill count, experience band (where extractable), posting date, URL.
+
+Top skills (post-fix): Machine Learning (178), LLM (107), Generative AI
+(102), Python (95), Agents (88), RAG (64), NLP (49), Azure (49), Prompt
+Engineering (42), AWS (42).
+
+---
 
 ---
 

@@ -55,7 +55,7 @@ expected, not a bug.
       debugging journey (Naukri anti-bot wall, Adzuna auth fix, JSearch
       endpoint/schema fixes). ~467 real Bangalore postings collected from
       Adzuna + JSearch (LinkedIn/Indeed/Glassdoor aggregation).
-- [ ] Step 2: Wrangling / skill extraction
+- [x] Step 2: Wrangling / skill extraction
 - [ ] Step 3: Visualization
 - [ ] Step 4: Clustering
 - [ ] Step 5: GenAI gap-analysis agent
