@@ -13,6 +13,7 @@ Run:
 import json
 import re
 import sys
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -76,23 +77,48 @@ def extract_experience(text: str) -> tuple[int | None, int | None]:
     return None, None
 
 
+def strip_company_boilerplate(rows: list[dict], min_group_size: int = 2, min_prefix_len: int = 60) -> tuple[list[dict], dict]:
+    """
+    Companies often post multiple listings that all open with an identical
+    'About Us' paragraph (e.g. eBay's "we're more than a global ecommerce
+    leader..." intro, or platform-injected text like myGwork's diversity
+    statement). That shared text is pure noise for skill extraction and
+    clustering -- it's the same string appearing across otherwise-unrelated
+    postings, which distorts TF-IDF and can even accidentally match skill
+    keywords. This finds the longest common prefix per company (only when
+    >=2 postings share one) and strips it out. Generic by design: catches
+    any company's repeated boilerplate, not just ones we've manually seen.
+    """
+    from collections import defaultdict
+    by_company = defaultdict(list)
+    for i, row in enumerate(rows):
+        by_company[row["company"]].append(i)
+
+    stripped_log = {}
+    for company, idxs in by_company.items():
+        if len(idxs) < min_group_size or not company:
+            continue
+        texts = [rows[i]["description_clean"] for i in idxs]
+        prefix = os.path.commonprefix(texts)
+        if len(prefix) >= min_prefix_len:
+            # trim to the last full word so we don't cut mid-word
+            prefix = prefix[:prefix.rfind(" ")] if " " in prefix else prefix
+            for i in idxs:
+                rows[i]["description_clean"] = rows[i]["description_clean"][len(prefix):].strip()
+            stripped_log[company] = (len(idxs), prefix[:80])
+
+    return rows, stripped_log
+
+
 def build_dataframe(raw_jobs: list[dict]) -> pd.DataFrame:
+    # Pass 1: clean text only, no skill extraction yet -- we need every
+    # posting's cleaned description before we can detect shared company
+    # boilerplate across postings.
     rows = []
     for j in raw_jobs:
         title = j.get("title") or ""
         raw_desc = j.get("description_snippet") or ""
         desc_clean = clean_text(raw_desc)
-
-        # Search title + description together -- titles often carry strong
-        # signal ("GenAI Engineer", "LLM") that short snippets might miss.
-        search_text = f"{title} {desc_clean}"
-
-        skills_found = extract_skills(search_text)
-
-        # Prefer structured experience field if a source ever provides one;
-        # otherwise fall back to regex extraction from text.
-        exp_min, exp_max = extract_experience(search_text)
-
         rows.append({
             "source": j.get("source"),
             "search_query": j.get("query"),
@@ -102,13 +128,26 @@ def build_dataframe(raw_jobs: list[dict]) -> pd.DataFrame:
             "location": j.get("location"),
             "description_clean": desc_clean,
             "description_is_truncated": truncate_flag(raw_desc),
-            "skills_extracted": skills_found,
-            "skill_count": len(skills_found),
-            "exp_min_years": exp_min,
-            "exp_max_years": exp_max,
             "posted_date": j.get("posted_date"),
             "url": j.get("url"),
         })
+
+    # Pass 2: strip any company-level boilerplate shared across >=2 postings
+    rows, stripped_log = strip_company_boilerplate(rows)
+    if stripped_log:
+        print(f"\n  Stripped shared company boilerplate from {len(stripped_log)} companies:")
+        for company, (count, sample) in stripped_log.items():
+            print(f"    - {company} ({count} postings): \"{sample}...\"")
+
+    # Pass 3: now extract skills/experience from the cleaned (and
+    # boilerplate-stripped) text
+    for row in rows:
+        search_text = f"{row['title']} {row['description_clean']}"
+        row["skills_extracted"] = extract_skills(search_text)
+        row["skill_count"] = len(row["skills_extracted"])
+        exp_min, exp_max = extract_experience(search_text)
+        row["exp_min_years"] = exp_min
+        row["exp_max_years"] = exp_max
 
     df = pd.DataFrame(rows)
 

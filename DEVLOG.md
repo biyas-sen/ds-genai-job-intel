@@ -208,7 +208,79 @@ comparisons, a skill co-occurrence heatmap, and a category/skill treemap.
 ---
 
 ## Step 4: Clustering
-*(not started yet)*
+
+**Goal:** let real role categories emerge from the data via TF-IDF + KMeans,
+rather than trusting inconsistent job titles (companies use "Data
+Scientist", "AI/ML Engineer", "Applied AI Engineer" for near-identical
+roles, and sometimes identical titles for very different roles).
+
+Built a TF-IDF matrix (title weighted 2x + extracted skills + cleaned
+description, 500 features, unigrams+bigrams), tested k=3 through k=10 via
+silhouette score rather than picking a cluster count by eye, visualized
+with a PCA-reduced 2D scatter plot.
+
+### Bug found via manual verification: company "About Us" boilerplate polluting clusters
+
+First run put a cluster together whose top TF-IDF terms were "ecommerce,
+world, pushing boundaries, millions, committed, leader, future" -- not
+job-content language at all. Manually inspected the postings inside that
+cluster and found they were 14 completely unrelated roles (ML Engineer,
+Applied Research Manager, SEO Science Engineer, Data Science Manager) that
+all happened to come from eBay, whose postings all open with an identical
+"About eBay" company-intro paragraph. That shared paragraph was distinctive
+enough (rare vocabulary) that TF-IDF grouped postings by *which company's
+boilerplate they had*, not by what the job actually was.
+
+**Fix (generalized, not company-specific):** built `strip_company_boilerplate()`
+in the wrangling step -- for any company with 2+ postings, it finds the
+longest shared text prefix across that company's listings and strips it
+before skill extraction or clustering ever see it. Deliberately generic
+(detects the *pattern* of repeated boilerplate) rather than hardcoding
+"eBay" or "myGwork" by name, so it also catches company intros we hadn't
+manually spotted.
+
+### Second bug found immediately after "fixing" the first one: smart punctuation broke exact-match detection
+
+Re-ran expecting the eBay cluster to disappear -- it didn't. Re-inspected
+and found eBay's postings hadn't been stripped at all, despite clearly
+sharing the same opening paragraph to a human reader. Root cause: one
+posting encoded that paragraph with curly quote/dash characters while
+others used plain ASCII -- almost certainly because Adzuna and JSearch
+normalize source-site punctuation differently. `os.path.commonprefix()`
+compares strings character-by-character, so it stopped at the very first
+curly-vs-straight mismatch, well short of the 60-character threshold needed
+to trigger stripping.
+
+**Fix:** added smart-punctuation normalization (curly quotes/dashes/ellipsis
+-> plain ASCII equivalents) as the very first step of `clean_text()`, before
+any other processing. Re-ran -- eBay correctly appeared in the stripped-
+boilerplate log this time (18 postings), and the "ecommerce/pushing
+boundaries" cluster was gone entirely from the next clustering run.
+
+**Takeaway:** two bugs in a row here shared the same shape -- something
+that looked identical to a human ("same eBay intro paragraph") wasn't
+actually identical at the character level to the code. Trusting "looks the
+same" instead of checking the actual string comparison would have shipped
+a silently broken fix.
+
+### Result
+
+Best k=10 (silhouette score 0.073 -- in the expected 0.05-0.15 range for
+real-world text with overlapping vocabulary, not image-style hard
+boundaries). All 10 clusters now correspond to genuine role-type
+distinctions: ML/NLP engineer, general AI/LLM engineer, classic Data
+Scientist, applied AI research, software engineer (AI-adjacent), core
+GenAI/LLM engineer (largest cluster, 91 postings), "AI Engineer"-titled
+roles, data engineering/analytics, senior/staff ML engineer, and GenAI
+developer/consultant roles -- confirming that Bangalore job titles alone
+meaningfully undercount the number of distinct role types actually being
+hired for.
+
+Saved: `data/processed/jobs_clustered.json` / `.csv` (full dataset with
+cluster assignments) and an interactive PCA scatter plot,
+`data/processed/charts/role_clusters_scatter.html`.
+
+---
 
 ---
 

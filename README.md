@@ -57,6 +57,6 @@ expected, not a bug.
       Adzuna + JSearch (LinkedIn/Indeed/Glassdoor aggregation).
 - [x] Step 2: Wrangling / skill extraction
 - [x] Step 3: Visualization
-- [ ] Step 4: Clustering
+- [x] Step 4: Clustering
 - [ ] Step 5: GenAI gap-analysis agent
 - [ ] Step 6: Streamlit app + deployment
