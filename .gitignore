@@ -10,3 +10,5 @@ data/processed/*
 !data/processed/charts/*.html
 .DS_Store
 .Rhistory
+my_resume.txt
+data/processed/gap_analysis_reports/

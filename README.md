@@ -58,5 +58,5 @@ expected, not a bug.
 - [x] Step 2: Wrangling / skill extraction
 - [x] Step 3: Visualization
 - [x] Step 4: Clustering
-- [ ] Step 5: GenAI gap-analysis agent
+- [x] Step 5: GenAI gap-analysis agent
 - [ ] Step 6: Streamlit app + deployment
