@@ -26,7 +26,7 @@ pip install -r requirements.txt
 cp .env.example .env              # then fill in your keys
 ```
 
-## Step 1 — Data collection (we are here)
+## Step 1 — Data collection
 Three sources, all legal and working:
 
 1. **Naukri** — direct scrape of their public search JSON endpoint (no login needed).
@@ -59,4 +59,4 @@ expected, not a bug.
 - [x] Step 3: Visualization
 - [x] Step 4: Clustering
 - [x] Step 5: GenAI gap-analysis agent
-- [x] Step 6: Streamlit app + deployment
+- [x] Step 6: Streamlit app + deployment (we are here)
