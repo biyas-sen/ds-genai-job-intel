@@ -357,4 +357,56 @@ advice.
 ---
 
 ## Step 6: Streamlit App + Deployment
-*(not started yet)*
+**Goal:** wrap the whole pipeline into a single live link -- market overview
+charts, role clusters, and resume gap analysis -- instead of a repo someone
+has to clone and run 5 scripts against.
+
+### PDF/DOCX upload instead of plain text
+Originally planned a plain-text resume input, but realized before building
+that no one trying a live demo has a `.txt` resume sitting around -- they'll
+want to drag in their actual PDF or Word doc. Added `pypdf` for PDF text
+extraction and `python-docx` for `.docx`, both feeding into the same
+skill-matching and gap-analysis pipeline already built in Steps 4-5.
+
+### The PyArrow segfault (multi-day debugging rabbit hole)
+`st.dataframe`/`st.table` crashed the app with a hard `zsh: segmentation
+fault` on submit, no Python traceback. Chased several plausible causes in
+order: pandas defaulting to the PyArrow string backend on 2.x
+(`pip install "pandas<3.0.0"` -- didn't fix it), a corrupted venv (full
+rebuild -- didn't fix it), Apple Silicon running under Rosetta
+(`uname -m` vs `platform.machine()` both returned `arm64`, ruled out), and
+pandas being unsafe off the main thread (isolated repro in a bare
+`threading.Thread` -- ran clean, ruled out). A fresh traceback with
+`PYTHONFAULTHANDLER=1` finally pointed at PyArrow's own Arrow conversion
+(`convert_anything_to_arrow_bytes`) choking on nested list objects inside a
+DataFrame column -- a real, known PyArrow fragility, not a bug in this
+project's code.
+**Fix:** stopped trying to work around PyArrow and avoided it entirely.
+Replaced every `st.dataframe`/`st.table` call with a custom
+`render_table()` that builds an HTML/Markdown table as a plain string via
+`st.markdown()` -- no Arrow serialization involved at all. Lost a little
+built-in polish (sorting/filtering UI) but the segfault is gone completely,
+not just delayed.
+
+### Missing dependencies caught only by a fresh environment
+Two separate "works locally, breaks on rebuild" issues, both the same root
+cause: a package installed manually mid-session (`pip install X`) but never
+actually added to `requirements.txt`.
+- `pypdf` -- missing after a full local venv rebuild.
+- `google-genai` -- missing on the first Streamlit Community Cloud deploy,
+  surfaced as `ImportError: cannot import name 'genai' from 'google'`.
+**Takeaway:** `pip install` in an active terminal session is not the same
+as the dependency being recorded anywhere. Any package installed
+ad hoc needs to be added to `requirements.txt` in the same breath, or it
+silently vanishes the next time the environment is rebuilt from scratch --
+locally or on a deploy platform.
+
+### Result
+Live app on Streamlit Community Cloud with three tabs: Market Overview (9
+interactive charts), Role Clusters (TF-IDF/KMeans explorer), and Resume Gap
+Analysis (PDF/DOCX/TXT upload -> skill-overlap ranking against all 407
+postings -> full Gemini-powered gap analysis on any selected posting).
+GEMINI_API_KEY stored in Streamlit Cloud's Secrets manager, not committed
+to the repo. First cold-deploy test, run end to end after fixing both
+missing dependencies, worked cleanly.
+---
