@@ -8,6 +8,10 @@ data/processed/*
 !data/processed/.gitkeep
 !data/processed/charts/
 !data/processed/charts/*.html
+!data/processed/jobs_clean.json
+!data/processed/jobs_clean.csv
+!data/processed/jobs_clustered.json
+!data/processed/jobs_clustered.csv
 .DS_Store
 .Rhistory
 my_resume.txt
